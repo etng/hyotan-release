@@ -23,15 +23,21 @@ BIND=127.0.0.1:8123
 FROM=${HYOTAN_BINARY:-}
 # 发行清单的多个入口：同一份 releases.json 同时放在 GitHub Pages、
 # jsDelivr 的几个 CDN 节点、仓库分支和 ghfast.top 代理后面。
-# 随机起点 + 失败自动切下一个，避免所有节点都压在 GitHub 一个点上。
-# 国内实测 cdn.jsdelivr.net 不通，留着只作境外兜底（失败会立刻切走）。
-MIRRORS=(
+# 发行清单源分两组：
+#  - PRIORITY：实时源（GitHub Pages / raw / ghfast.top 实时代理 raw），不依赖 CDN 缓存，
+#    发布后立刻生效，优先从这取。
+#  - FALLBACK：jsDelivr 各节点。曾经因此踩坑：jsDelivr 缓存滞后，发布后一段时间
+#    拉到的是「旧 sha256 的 releases.json」，用它校验新二进制导致升级全盘失败。
+#    所以只在 PRIORITY 全不可用时才落到 FALLBACK。
+PRIORITY=(
   "https://etng.github.io/hyotan-release/releases.json"
+  "https://raw.githubusercontent.com/etng/hyotan-release/main/releases.json"
+  "https://ghfast.top/https://raw.githubusercontent.com/etng/hyotan-release/main/releases.json"
+)
+FALLBACK=(
   "https://fastly.jsdelivr.net/gh/etng/hyotan-release@gh-pages/releases.json"
   "https://gcore.jsdelivr.net/gh/etng/hyotan-release@gh-pages/releases.json"
   "https://cdn.jsdelivr.net/gh/etng/hyotan-release@gh-pages/releases.json"
-  "https://raw.githubusercontent.com/etng/hyotan-release/main/releases.json"
-  "https://ghfast.top/https://raw.githubusercontent.com/etng/hyotan-release/main/releases.json"
 )
 # 自定义源（HYOTAN_RELEASE_URL / --url）插入候选首位，公共镜像仍作兜底
 BASE=${HYOTAN_RELEASE_URL:-}
@@ -102,8 +108,9 @@ else
   command -v curl >/dev/null 2>&1 || fail "需要 curl 来下载发行清单"
   BASE=${BASE%/}
 
-  # 候选顺序：自定义源优先，然后内置镜像。$RANDOM 定起点，每台机器从不同
-  # 的源开始，请求自然分散；任一源挂了 / 返回错误页就切下一个。
+  # 候选顺序：自定义源（--url / HYOTAN_RELEASE_URL）优先，然后 PRIORITY 实时源，
+  # 最后 FALLBACK（jsDelivr 兜底）。PRIORITY 组内用 $RANDOM 定起点、失败自动切下一个，
+  # 让请求分散；PRIORITY 全不可用时才落到 FALLBACK，避免拿到发布后还没刷新的旧清单。
   CANDIDATES=()
   if [[ -n $BASE ]]; then
     case "$BASE" in
@@ -111,21 +118,35 @@ else
       *)      CANDIDATES+=("$BASE/releases.json") ;;
     esac
   fi
-  for m in "${MIRRORS[@]}"; do CANDIDATES+=("$m"); done
-  N=${#CANDIDATES[@]}
-  START=$((RANDOM % N))
+  for m in "${PRIORITY[@]}"; do CANDIDATES+=("$m"); done
   MANIFEST_URL=''
-  for ((i = 0; i < N; i++)); do
-    u=${CANDIDATES[$(( (START + i) % N ))]}
-    if curl -fsSL --connect-timeout 8 --max-time 20 --retry 1 --retry-all-errors \
-         "$u" -o "$TMP/releases.json" 2>/dev/null \
-       && python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if isinstance(d,list) and d and "assets" in d[0] else 1)' \
-            "$TMP/releases.json" 2>/dev/null; then
-      MANIFEST_URL=$u
-      break
-    fi
-  done
-  [[ -n $MANIFEST_URL ]] || fail "所有发行清单源都不可用（已试 $N 个）"
+  N=${#CANDIDATES[@]}
+  if [[ $N -gt 0 ]]; then
+    START=$((RANDOM % N))
+    for ((i = 0; i < N; i++)); do
+      u=${CANDIDATES[$(( (START + i) % N ))]}
+      if curl -fsSL --connect-timeout 8 --max-time 20 --retry 1 --retry-all-errors \
+           "$u" -o "$TMP/releases.json" 2>/dev/null \
+         && python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if isinstance(d,list) and d and "assets" in d[0] else 1)' \
+              "$TMP/releases.json" 2>/dev/null; then
+        MANIFEST_URL=$u
+        break
+      fi
+    done
+  fi
+  # PRIORITY 全失败时，顺序尝试 FALLBACK（不再随机，尽快兜底）
+  if [[ -z $MANIFEST_URL ]]; then
+    for u in "${FALLBACK[@]}"; do
+      if curl -fsSL --connect-timeout 8 --max-time 20 --retry 1 --retry-all-errors \
+           "$u" -o "$TMP/releases.json" 2>/dev/null \
+         && python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if isinstance(d,list) and d and "assets" in d[0] else 1)' \
+              "$TMP/releases.json" 2>/dev/null; then
+        MANIFEST_URL=$u
+        break
+      fi
+    done
+  fi
+  [[ -n $MANIFEST_URL ]] || fail "所有发行清单源都不可用（已试多个）"
   echo "发行清单    $MANIFEST_URL"
 
   # 清单里资产 url 是绝对地址；仍保留相对路径兼容（相对取到清单的那个源）。
