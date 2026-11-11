@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>葫芦 · 服务器面板</title>
+  <meta name="description" content="葫芦是一款面向站长的服务器面板。一条命令完成安装，在浏览器里管理网站、证书、数据库、备份与安全防护。">
+  <link rel="icon" type="image/png" href="assets/hyotan-mark-512.png">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top">
+      <img src="assets/hyotan-mark-512.png" alt="葫芦标志">
+      <span>葫芦<small>服务器面板</small></span>
+    </a>
+    <nav class="nav-links">
+      <a href="#features">功能</a>
+      <a href="#install">安装</a>
+      <a href="#after">开始使用</a>
+      <a href="#faq">常见问题</a>
+    </nav>
+    <a class="btn btn-sm btn-solid" href="#install">立即安装</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- 首屏 -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow">一条命令，装好整台服务器</span>
+        <h1>把服务器，交给一个<br><span class="hl">看得懂</span>的面板</h1>
+        <p class="lead">建站、证书、数据库、备份、安全防护，都在一个网页里完成。不用记命令，也不用逐项配置。</p>
+
+        <div class="cmd">
+          <div class="cmd-head"><span>一键安装</span><span class="cmd-hint">在服务器上执行</span></div>
+          <div class="cmd-body">
+            <code id="install-cmd">curl -fsSL https://etng.github.io/hyotan-release/install.sh | sudo bash</code>
+            <button id="copy-btn" type="button" aria-label="复制安装命令">复制</button>
+          </div>
+        </div>
+        <div class="hero-meta">适用于 64 位 Linux 服务器 · 安装包约 20 MB · 安装完成后自动启动</div>
+
+        <div class="hero-actions">
+          <a class="btn btn-solid" href="#install">查看安装说明</a>
+          <a class="btn btn-ghost" href="https://github.com/etng/hyotan-release/releases">查看全部版本</a>
+        </div>
+      </div>
+
+      <!-- 界面示意：纯图形，不使用真实环境截图 -->
+      <div class="hero-visual" aria-hidden="true">
+        <div class="window">
+          <div class="win-bar"><i></i><i></i><i></i><span>我的服务器</span></div>
+          <div class="win-body">
+            <aside class="side">
+              <div class="side-brand"><span class="dot"></span> 葫芦</div>
+              <div class="side-item on">概览</div>
+              <div class="side-item">网站</div>
+              <div class="side-item">数据库</div>
+              <div class="side-item">证书</div>
+              <div class="side-item">备份</div>
+              <div class="side-item">安全防护</div>
+              <div class="side-item">文件</div>
+              <div class="side-item">设置</div>
+            </aside>
+            <div class="dash">
+              <div class="dash-title">服务器概览 <span class="pill">运行正常</span></div>
+              <div class="tiles">
+                <div class="tile"><span>网站</span><b>运行正常</b><em class="ok"></em></div>
+                <div class="tile"><span>证书</span><b>有效期内</b><em class="ok"></em></div>
+                <div class="tile"><span>数据库</span><b>运行正常</b><em class="ok"></em></div>
+                <div class="tile"><span>最近备份</span><b>已完成</b><em class="ok"></em></div>
+              </div>
+              <div class="chart">
+                <div class="chart-label">运行状态</div>
+                <div class="bars">
+                  <i style="height:38%"></i><i style="height:52%"></i><i style="height:44%"></i>
+                  <i style="height:63%"></i><i style="height:57%"></i><i style="height:72%"></i>
+                  <i style="height:61%"></i><i style="height:80%"></i><i style="height:68%"></i>
+                  <i style="height:74%"></i><i style="height:59%"></i><i style="height:66%"></i>
+                </div>
+              </div>
+              <div class="dash-rows">
+                <div><span class="dot ok"></span> 网站服务运行正常</div>
+                <div><span class="dot ok"></span> 自动备份已完成</div>
+                <div><span class="dot warn"></span> 有一项建议查看</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="float-card"><span class="dot ok"></span> 所有服务运行正常</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 能力概览 -->
+  <section class="strip">
+    <div class="wrap strip-grid">
+      <div><b>一个安装包</b><span>不用准备额外的运行环境</span></div>
+      <div><b>浏览器里操作</b><span>不用背命令，也不用远程桌面</span></div>
+      <div><b>改动有记录</b><span>谁在什么时候做了什么，一目了然</span></div>
+      <div><b>失败可回退</b><span>升级、改配置、还原都有退路</span></div>
+    </div>
+  </section>
+
+  <!-- 功能 -->
+  <section class="section" id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">常用功能</span>
+        <h2>一台服务器每天要管的事，都在这里</h2>
+        <p>从第一次建站到日常维护，尽量减少需要自己动手的环节。</p>
+      </div>
+      <div class="features">
+        <div class="feature"><span class="num">01</span><h3>网站管理</h3><p>新建站点、绑定域名、切换 PHP 版本、查看运行状态与访问日志，都在同一页完成。</p></div>
+        <div class="feature"><span class="num">02</span><h3>安全证书</h3><p>为网站申请证书并自动续期，浏览器不再提示「不安全」；内网环境也能使用自己的证书。</p></div>
+        <div class="feature"><span class="num">03</span><h3>数据库</h3><p>建库、建账号、日常管理，以及网页版的数据库工具，不用另外安装软件。</p></div>
+        <div class="feature"><span class="num">04</span><h3>备份与还原</h3><p>按计划自动备份网站和数据库；需要恢复时选一个时间点，确认后即可还原。</p></div>
+        <div class="feature"><span class="num">05</span><h3>安全防护</h3><p>随机后台入口、两步验证、操作留痕与登录归属地，异常登录能被及时看见。</p></div>
+        <div class="feature"><span class="num">06</span><h3>文件管理</h3><p>在网页里浏览、上传、编辑和打包文件；删除先进回收站，误删也能找回来。</p></div>
+        <div class="feature"><span class="num">07</span><h3>计划任务</h3><p>把重复的事情交给定时任务，每次执行的结果和日志都留在面板里。</p></div>
+        <div class="feature"><span class="num">08</span><h3>运行状态</h3><p>首页直接看到处理器、内存、磁盘和服务状态，需要处理的事情会集中提醒。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 安装 -->
+  <section class="section section-tint" id="install">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">安装</span>
+        <h2>三步，开始使用</h2>
+        <p>整个过程不需要手工下载、解压或修改配置。</p>
+      </div>
+      <div class="steps">
+        <div class="step"><span class="step-no">1</span><h3>复制安装命令</h3><p>确认服务器是 64 位 Linux，并已使用 systemd（如 Ubuntu、Debian）。</p></div>
+        <div class="step"><span class="step-no">2</span><h3>在服务器上执行</h3><p>安装程序会自动识别架构、核对安装包完整性，完成后启动服务。</p></div>
+        <div class="step"><span class="step-no">3</span><h3>打开访问地址</h3><p>安装完成后屏幕会打印访问地址和初始账号，用浏览器打开即可。</p></div>
+      </div>
+
+      <div class="cmd cmd-wide">
+        <div class="cmd-head"><span>一键安装命令</span><span class="cmd-hint">需要管理员权限</span></div>
+        <div class="cmd-body">
+          <code>curl -fsSL https://etng.github.io/hyotan-release/install.sh | sudo bash</code>
+          <button class="copy-any" type="button" data-copy="curl -fsSL https://etng.github.io/hyotan-release/install.sh | sudo bash">复制</button>
+        </div>
+      </div>
+      <p class="fine">安装包也可以先下载到本机再安装，适合不方便联网的服务器。<a href="https://github.com/etng/hyotan-release/releases">前往下载页</a></p>
+    </div>
+  </section>
+
+  <!-- 装完之后 -->
+  <section class="section" id="after">
+    <div class="wrap after-grid">
+      <div>
+        <span class="eyebrow">装好之后</span>
+        <h2>先做两件小事，用得更安心</h2>
+        <p class="lead-sm">安装完成后，面板会在屏幕上打印专属访问地址和初始账号，请妥善保存。</p>
+        <ul class="check-list">
+          <li><span>01</span><div><b>登录后绑定两步验证</b><p>即使密码泄露，别人也进不了后台。</p></div></li>
+          <li><span>02</span><div><b>只开放面板需要的端口</b><p>在云服务器的防火墙里放行面板端口，其余端口保持关闭。</p></div></li>
+        </ul>
+      </div>
+      <div class="notice-card">
+        <div class="notice-title">忘记了访问地址？</div>
+        <p>在服务器上执行下面这条命令，就能重新看到访问地址。</p>
+        <div class="inline-code"><code>hyotan entry show</code></div>
+        <p class="notice-foot">初始密码只在首次安装时显示一次，登录后请立刻修改。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 常见问题 -->
+  <section class="section section-tint" id="faq">
+    <div class="wrap faq-wrap">
+      <div class="section-head">
+        <span class="eyebrow">常见问题</span>
+        <h2>安装前你可能想知道</h2>
+      </div>
+      <div class="faq">
+        <details open><summary>支持哪些服务器？</summary><p>提供 64 位 Linux 安装包（x86_64 与 ARM64），需要系统使用 systemd，例如 Ubuntu、Debian。建议内存 2 GB 以上。</p></details>
+        <details><summary>会影响服务器上已有的网站吗？</summary><p>安装过程只放置面板自身的文件和服务，不会改动现有网站内容。把面板端口放行后即可使用。</p></details>
+        <details><summary>怎么升级到新版本？</summary><p>在面板的「关于」页检查更新并确认安装即可。升级前会自动留一份可回退的旧版本。</p></details>
+        <details><summary>可以把面板直接暴露在公网吗？</summary><p>可以，但请务必绑定两步验证，并在云服务器防火墙里只放行面板端口。首次登录后立即修改初始密码。</p></details>
+        <details><summary>遇到问题去哪里反馈？</summary><p>可以到项目页面的「问题反馈」里描述现象，附上系统版本和面板提示信息，方便定位。</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- 收尾 -->
+  <section class="cta">
+    <div class="wrap cta-inner">
+      <h2>现在就装一台试试</h2>
+      <p>一条命令，几分钟后就能在浏览器里看到你的服务器。</p>
+      <a class="btn btn-solid btn-lg" href="#install">获取安装命令</a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <img src="assets/hyotan-mark-reverse-512.png" alt="">
+      <div><b>葫芦 · 服务器面板</b><span>让服务器管理简单一点</span></div>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/etng/hyotan-release">项目主页</a>
+      <a href="https://github.com/etng/hyotan-release/releases">版本下载</a>
+      <a href="https://github.com/etng/hyotan-release/issues">问题反馈</a>
+    </div>
+  </div>
+  <div class="wrap footer-bottom"><span>© 2026 葫芦</span><span>开放源代码 · AGPL-3.0</span></div>
+</footer>
+
+<script>
+  function copyText(text, btn) {
+    const done = () => {
+      const old = btn.textContent;
+      btn.textContent = '已复制';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = old; btn.classList.remove('copied'); }, 1600);
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallback(text, done));
+    } else { fallback(text, done); }
+  }
+  function fallback(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { /* 浏览器禁止时，用户仍可手动选中命令 */ }
+    document.body.removeChild(ta);
+  }
+  document.querySelectorAll('[data-copy]').forEach((b) => {
+    b.addEventListener('click', () => copyText(b.getAttribute('data-copy'), b));
+  });
+  const main = document.getElementById('copy-btn');
+  if (main) {
+    main.addEventListener('click', () => copyText(document.getElementById('install-cmd').textContent.trim(), main));
+  }
+</script>
+</body>
+</html>
