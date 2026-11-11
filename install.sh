@@ -21,10 +21,20 @@ UNIT=/etc/systemd/system/hyotan.service
 DATA=/www/server/hyotan/data
 BIND=127.0.0.1:8123
 FROM=${HYOTAN_BINARY:-}
-# 官网与发行清单托管在 GitHub Pages。仍可用 HYOTAN_RELEASE_URL / --url 覆盖，
-# 便于内网镜像或分批下发。
-DEFAULT_BASE=https://etng.github.io/hyotan-release
-BASE=${HYOTAN_RELEASE_URL:-$DEFAULT_BASE}
+# 发行清单的多个入口：同一份 releases.json 同时放在 GitHub Pages、
+# jsDelivr 的几个 CDN 节点、仓库分支和 ghfast.top 代理后面。
+# 随机起点 + 失败自动切下一个，避免所有节点都压在 GitHub 一个点上。
+# 国内实测 cdn.jsdelivr.net 不通，留着只作境外兜底（失败会立刻切走）。
+MIRRORS=(
+  "https://etng.github.io/hyotan-release/releases.json"
+  "https://fastly.jsdelivr.net/gh/etng/hyotan-release@gh-pages/releases.json"
+  "https://gcore.jsdelivr.net/gh/etng/hyotan-release@gh-pages/releases.json"
+  "https://cdn.jsdelivr.net/gh/etng/hyotan-release@gh-pages/releases.json"
+  "https://raw.githubusercontent.com/etng/hyotan-release/main/releases.json"
+  "https://ghfast.top/https://raw.githubusercontent.com/etng/hyotan-release/main/releases.json"
+)
+# 自定义源（HYOTAN_RELEASE_URL / --url）插入候选首位，公共镜像仍作兜底
+BASE=${HYOTAN_RELEASE_URL:-}
 UPGRADE=0
 NO_START=0
 
@@ -89,16 +99,40 @@ if [[ -n $FROM ]]; then
   cp "$FROM" "$SRC"
   echo "来源        本地文件 $FROM"
 else
-  [[ -n $BASE ]] || fail "下载地址为空，请用 --url 指定"
   command -v curl >/dev/null 2>&1 || fail "需要 curl 来下载发行清单"
   BASE=${BASE%/}
-  echo "发行源      $BASE"
-  curl -fsSL --max-time 30 "$BASE/releases.json" -o "$TMP/releases.json" \
-    || fail "下载 releases.json 失败（$BASE/releases.json）"
 
+  # 候选顺序：自定义源优先，然后内置镜像。$RANDOM 定起点，每台机器从不同
+  # 的源开始，请求自然分散；任一源挂了 / 返回错误页就切下一个。
+  CANDIDATES=()
+  if [[ -n $BASE ]]; then
+    case "$BASE" in
+      *.json) CANDIDATES+=("$BASE") ;;
+      *)      CANDIDATES+=("$BASE/releases.json") ;;
+    esac
+  fi
+  for m in "${MIRRORS[@]}"; do CANDIDATES+=("$m"); done
+  N=${#CANDIDATES[@]}
+  START=$((RANDOM % N))
+  MANIFEST_URL=''
+  for ((i = 0; i < N; i++)); do
+    u=${CANDIDATES[$(( (START + i) % N ))]}
+    if curl -fsSL --connect-timeout 8 --max-time 20 --retry 1 --retry-all-errors \
+         "$u" -o "$TMP/releases.json" 2>/dev/null \
+       && python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if isinstance(d,list) and d and "assets" in d[0] else 1)' \
+            "$TMP/releases.json" 2>/dev/null; then
+      MANIFEST_URL=$u
+      break
+    fi
+  done
+  [[ -n $MANIFEST_URL ]] || fail "所有发行清单源都不可用（已试 $N 个）"
+  echo "发行清单    $MANIFEST_URL"
+
+  # 清单里资产 url 是绝对地址；仍保留相对路径兼容（相对取到清单的那个源）。
+  MANIFEST_DIR=${MANIFEST_URL%/*}
   # 清单格式见 scripts/make-release-index.sh：数组，较新的版本在前，
   # 每项 assets[] 里有 os / arch / name / sha256 / url。
-  read -r ASSET SHA < <(BASE="$BASE" OS="$OS" ARCH="$ARCH" python3 - "$TMP/releases.json" <<'PY'
+  read -r ASSET SHA < <(BASE="$MANIFEST_DIR" OS="$OS" ARCH="$ARCH" python3 - "$TMP/releases.json" <<'PY'
 import json, sys, os
 base = os.environ["BASE"].rstrip("/")
 want_os, want_arch = os.environ["OS"], os.environ["ARCH"]
@@ -117,23 +151,38 @@ sys.exit("清单里没有 linux/%s 且带 sha256 的资产" % want_arch)
 PY
 ) || fail "解析 releases.json 失败"
   echo "资产        $ASSET"
-  # 国内到 GitHub 资产 CDN 常见中途断流（真机实测 21 MB 下载报
-  # "SSL_read: unexpected eof"，另有多次连接超时）。断点续传 + 重试：
-  # 断了从已下载的字节继续，不重头开始；下面的 sha256 仍是对最终整文件逐字节校验，
-  # 续传不会绕过完整性检查。
-  if ! curl -fSL --retry 6 --retry-all-errors --retry-delay 2 \
-       --connect-timeout 15 --max-time 900 -C - \
-       -o "$SRC" "$ASSET"; then
-    fail "下载安装包失败（已重试 6 次）。可稍后再试，或先手动下载后用 --from 离线安装"
-  fi
-  # 逐字节校验：清单被改一行、下载被劫持，都必须在这里挡住
-  ACTUAL=$(python3 - "$SRC" <<'PY'
+
+  # 国内拉 Release 大文件优先 ghfast.top（把完整 GitHub URL 原样拼在代理后面），
+  # 原生 GitHub 作第二候选；两者随机起点，下载失败或校验不一致就切下一个。
+  # 候选内部用 --retry + 断点续传，应对 SSL_read unexpected eof 与连接超时。
+  ASSET_CANDS=("https://ghfast.top/$ASSET" "$ASSET")
+  M=${#ASSET_CANDS[@]}
+  ASTART=$((RANDOM % M))
+  GOT=0
+  for ((i = 0; i < M; i++)); do
+    u=${ASSET_CANDS[$(( (ASTART + i) % M ))]}
+    echo "  下载源    $u"
+    rm -f "$SRC"
+    if ! curl -fSL --retry 4 --retry-all-errors --retry-delay 2 \
+         --connect-timeout 15 --max-time 900 -C - \
+         -o "$SRC" "$u"; then
+      echo "  该源下载失败，换下一个"
+      continue
+    fi
+    # 逐字节校验：清单被改一行、下载被劫持、代理返回错文件，都在这里挡住
+    ACTUAL=$(python3 - "$SRC" <<'PY'
 import hashlib, sys
 print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())
 PY
 )
-  [[ "$ACTUAL" == "$SHA" ]] || fail "sha256 不匹配：期望 $SHA，实际 $ACTUAL"
-  echo "校验        sha256 一致（${SHA:0:16}…）"
+    if [[ "$ACTUAL" == "$SHA" ]]; then
+      echo "  校验        sha256 一致（${SHA:0:16}…）"
+      GOT=1
+      break
+    fi
+    echo "  该源校验不一致，换下一个"
+  done
+  [[ $GOT -eq 1 ]] || fail "所有下载源都失败或校验不一致。可稍后再试，或先手动下载后用 --from 离线安装"
 fi
 
 # 别把 HTML 错误页 / 压缩包当二进制装进去：ELF 魔数是最便宜的一道闸
