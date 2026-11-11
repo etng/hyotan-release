@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "tag": "v0.1.0",
     "name": "葫芦 v0.1.0",
-    "publishedAt": "2026-11-11T03:41:02Z",
+    "publishedAt": "2026-11-11T04:01:55Z",
     "prerelease": false,
     "notes": "葫芦 v0.1.0。安装与升级说明见官网。",
     "notesUrl": "",
@@ -14,7 +14,7 @@
         "os": "linux",
         "arch": "amd64",
         "size": 21287424,
-        "sha256": "f7faedb9363335ee96d85b69d15f8082d02cfc6a200ed7a7f202bcef82a136aa",
+        "sha256": "067d8640698426fe3133854a7bba2f3e04790a21aeabcf7cfb3a4782a9634204",
         "url": "https://github.com/etng/hyotan-release/releases/download/v0.1.0/hyotan-linux-amd64"
       },
       {
@@ -22,7 +22,7 @@
         "os": "linux",
         "arch": "arm64",
         "size": 20012912,
-        "sha256": "d5f622ca7be54781a8d5536b78cafaa73b9987acb350804ac3dd8243a19101dd",
+        "sha256": "bf952e1a9a5f4a8466943288b1423f85015c55f55d575b1c87fd69b871db51eb",
         "url": "https://github.com/etng/hyotan-release/releases/download/v0.1.0/hyotan-linux-arm64"
       }
     ]
