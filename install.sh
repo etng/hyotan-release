@@ -117,7 +117,15 @@ sys.exit("清单里没有 linux/%s 且带 sha256 的资产" % want_arch)
 PY
 ) || fail "解析 releases.json 失败"
   echo "资产        $ASSET"
-  curl -fsSL --max-time 600 "$ASSET" -o "$SRC" || fail "下载二进制失败"
+  # 国内到 GitHub 资产 CDN 常见中途断流（真机实测 21 MB 下载报
+  # "SSL_read: unexpected eof"，另有多次连接超时）。断点续传 + 重试：
+  # 断了从已下载的字节继续，不重头开始；下面的 sha256 仍是对最终整文件逐字节校验，
+  # 续传不会绕过完整性检查。
+  if ! curl -fSL --retry 6 --retry-all-errors --retry-delay 2 \
+       --connect-timeout 15 --max-time 900 -C - \
+       -o "$SRC" "$ASSET"; then
+    fail "下载安装包失败（已重试 6 次）。可稍后再试，或先手动下载后用 --from 离线安装"
+  fi
   # 逐字节校验：清单被改一行、下载被劫持，都必须在这里挡住
   ACTUAL=$(python3 - "$SRC" <<'PY'
 import hashlib, sys
